@@ -1,6 +1,11 @@
 package auth
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+
+	"github.com/dimmerz92/sittella/utils"
+)
 
 // CookieOpts sets the cookie parameters for the Auth session cookies.
 type CookieOpts struct {
@@ -28,4 +33,41 @@ var DefaultCookieOpts = CookieOpts{
 	HttpOnly: "true",
 	Secure:   "true",
 	SameSite: http.SameSiteStrictMode,
+}
+
+// SetSessionCookie adds a session cookie to the response writer.
+func SetSessionCookie(w http.ResponseWriter, sessionId string, ttl time.Duration, cookieOpts CookieOpts) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     utils.Coalesce(cookieOpts.Name, DefaultCookieOpts.Name),
+		Path:     utils.Coalesce(cookieOpts.Path, DefaultCookieOpts.Path),
+		Value:    sessionId,
+		Expires:  time.Now().Add(ttl), // for compatibility
+		MaxAge:   int(ttl.Seconds()),
+		HttpOnly: cookieOpts.HttpOnly != "false",
+		Secure:   cookieOpts.Secure != "false",
+		SameSite: utils.Coalesce(cookieOpts.SameSite, DefaultCookieOpts.SameSite),
+	})
+}
+
+// RevokeSessionCookie invalidates a session cookie on the response writer.
+func RevokeSessionCookie(w http.ResponseWriter, cookieOpts CookieOpts) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     utils.Coalesce(cookieOpts.Name, DefaultCookieOpts.Name),
+		Path:     utils.Coalesce(cookieOpts.Path, DefaultCookieOpts.Path),
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: cookieOpts.HttpOnly != "false",
+		Secure:   cookieOpts.Secure != "false",
+		SameSite: utils.Coalesce(cookieOpts.SameSite, DefaultCookieOpts.SameSite),
+	})
+}
+
+// GetSessionIdFromCookie returns the session ID if it exists or an empty string.
+func GetSessionIdFromCookie(r *http.Request, cookieOpts CookieOpts) (string, bool) {
+	cookie, _ := r.Cookie(utils.Coalesce(cookieOpts.Name, DefaultCookieOpts.Name))
+	if cookie != nil {
+		return cookie.Value, true
+	}
+	return "", false
 }

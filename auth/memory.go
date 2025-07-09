@@ -89,6 +89,7 @@ func (a *MemoryAuthContext) Get(dest any, ttlOverride ...time.Duration) error {
 func (a *MemoryAuthContext) Delete() error {
 	if sessionId, ok := GetSessionIdFromCookie(a.req, a.auth.cookieOpts); ok {
 		a.auth.store.Delete(sessionId)
+		RevokeSessionCookie(a.res, a.auth.cookieOpts)
 	}
 	return nil
 }

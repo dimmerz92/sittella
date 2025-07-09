@@ -114,3 +114,22 @@ func (c *Context[Queries]) Render(status int, tpls ...templ.Component) error {
 
 	return c.HTML(status, buf.String())
 }
+
+// IsHTMX returns true if a request was made by HTMX, otherwise false.
+func (c *Context[Queries]) IsHTMX() bool {
+	return c.req.Header.Get("Hx-Request") == "true"
+}
+
+// Redirect is a HTMX aware redirect method.
+// A standard http redirect is made with the given status if the request was not made by HTMX.
+// Otherwise, the Hx-Redirect header is set to path and a status 200 is returned instead of the given status.
+// See: https://github.com/bigskysoftware/htmx/issues/2052#issuecomment-1979805051
+func (c *Context[Queries]) Redirect(status int, path string) error {
+	if c.IsHTMX() {
+		c.res.Header().Set("Hx-Redirect", path)
+		c.NoContent(http.StatusOK)
+		return nil
+	}
+	http.Redirect(c.res, c.req, path, status)
+	return nil
+}

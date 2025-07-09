@@ -3,6 +3,7 @@ package sittella
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/a-h/templ"
 	"github.com/dimmerz92/sittella/auth"
@@ -14,10 +15,33 @@ import (
 type Context[Queries any] struct {
 	res      http.ResponseWriter
 	req      *http.Request
+	store    sync.Map
 	db       database.Database[Queries]
 	mailer   mailer.Mailer
 	auth     auth.AuthContext
 	sessions sessions.SessionStoreContext
+}
+
+// Response returns the underlying response writer.
+func (c *Context[Queries]) Response() http.ResponseWriter {
+	return c.res
+}
+
+// Request returns the underlying request.
+func (c *Context[Queries]) Request() *http.Request {
+	return c.req
+}
+
+// Set adds the data mapped to by key in the request scoped store.
+// Data stored using this method will not be persisted past the end of the current request.
+// For a more persistent store, use the Sessions() method.
+func (c *Context[Queries]) Set(key string, data any) {
+	c.store.Store(key, data)
+}
+
+// Get retrieves the data mapped to by key from the request scoped store if it exists.
+func (c *Context[Queries]) Get(key string) (any, bool) {
+	return c.store.Load(key)
 }
 
 // DB returns access to the underlying database and user-defined queries.

@@ -15,12 +15,15 @@ type session struct {
 	Data   []byte
 }
 
+// MemoryAuthContext provides request scoped access to the auth store.
 type MemoryAuthContext struct {
 	res  http.ResponseWriter
 	req  *http.Request
 	auth *MemoryAuth
 }
 
+// Set adds the given data to the auth store and sets a session cookie.
+// May return backend specific errors or if the data is not serialisable by the configured codec.
 func (a *MemoryAuthContext) Set(data any, ttlOverride ...time.Duration) error {
 	sessionId := uuid.NewString()
 	ttl := a.auth.ttl
@@ -42,6 +45,9 @@ func (a *MemoryAuthContext) Set(data any, ttlOverride ...time.Duration) error {
 	return nil
 }
 
+// Get retrieves the data from the auth store if a session cookie exists.
+// Returns ErrAuthNotFound if an auth session is not found or is expired.
+// May return backend specific errors or if the data is not serialisable by the configured codec.
 func (a *MemoryAuthContext) Get(dest any, ttlOverride ...time.Duration) error {
 	sessionId, ok := GetSessionIdFromCookie(a.req, a.auth.cookieOpts)
 	if !ok {
@@ -78,6 +84,8 @@ func (a *MemoryAuthContext) Get(dest any, ttlOverride ...time.Duration) error {
 	return nil
 }
 
+// Delete removes the data from the auth store and revokes the session cookie if it exists.
+// May return backend specific errors.
 func (a *MemoryAuthContext) Delete() error {
 	if sessionId, ok := GetSessionIdFromCookie(a.req, a.auth.cookieOpts); ok {
 		a.auth.store.Delete(sessionId)
@@ -85,6 +93,7 @@ func (a *MemoryAuthContext) Delete() error {
 	return nil
 }
 
+// MemoryAuth provides the router scoped in memory auth store to be distributed to contexts on each request.
 type MemoryAuth struct {
 	cancel     context.CancelFunc
 	codec      codecs.Codec
@@ -94,6 +103,7 @@ type MemoryAuth struct {
 	ttl        time.Duration
 }
 
+// MemoryAuthConfig is used to configure an instance of the MemoryAuth.
 type MemoryAuthConfig struct {
 	Codec      codecs.Codec
 	CookieOpts CookieOpts
@@ -102,6 +112,7 @@ type MemoryAuthConfig struct {
 	TTL        time.Duration
 }
 
+// NewMemoryAuth instantiates an instance of the MemorySessionStore.
 func NewMemoryAuth(config MemoryAuthConfig) *MemoryAuth {
 	if config.Interval <= 0 {
 		config.Interval = 10 * time.Minute
@@ -148,6 +159,7 @@ func NewMemoryAuth(config MemoryAuthConfig) *MemoryAuth {
 	return auth
 }
 
+// Returns a request scoped auth.
 func (a *MemoryAuth) WithContext(w http.ResponseWriter, r *http.Request) AuthContext {
 	return &MemoryAuthContext{
 		res:  w,
@@ -156,6 +168,8 @@ func (a *MemoryAuth) WithContext(w http.ResponseWriter, r *http.Request) AuthCon
 	}
 }
 
+// Stops any resources utilised by the auth.
+// Note: this does not remove any data.
 func (a *MemoryAuth) Stop() error {
 	a.cancel()
 	return nil

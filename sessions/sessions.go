@@ -14,12 +14,15 @@ type session struct {
 	Data   []byte
 }
 
+// MemorySessionStoreContext provides request scoped access to the session store.
 type MemorySessionStoreContext struct {
 	res      http.ResponseWriter
 	req      *http.Request
 	sessions *MemorySessionStore
 }
 
+// Set adds the given data to the session store.
+// May return backend specific errors or if the data is not serialisable by the configured codec.
 func (s *MemorySessionStoreContext) Set(key string, data any, ttlOverride ...time.Duration) error {
 	ttl := s.sessions.ttl
 	if len(ttlOverride) > 0 && ttlOverride[0] > 0 {
@@ -43,6 +46,9 @@ func (s *MemorySessionStoreContext) Set(key string, data any, ttlOverride ...tim
 	return nil
 }
 
+// Get retrieves the data from the session store for the given key if it exists.
+// Returns ErrSessionNotFound if n session is not found or is expired.
+// May return backend specific errors or if the data is not serialisable by the configured codec.
 func (s *MemorySessionStoreContext) Get(key string, dest any, ttlOverride ...time.Duration) error {
 	data, ok := s.sessions.store.Load(key)
 	if !ok {
@@ -66,6 +72,8 @@ func (s *MemorySessionStoreContext) Get(key string, dest any, ttlOverride ...tim
 	return nil
 }
 
+// Delete removes the data from the session store for the given key if it exists.
+// May return backend specific errors.
 func (s *MemorySessionStoreContext) Delete(key string) error {
 	s.sessions.store.Delete(key)
 
@@ -76,6 +84,7 @@ func (s *MemorySessionStoreContext) Delete(key string) error {
 	return nil
 }
 
+// MemorySessionStore provides the router scoped in memory store to be distributed to contexts on each request.
 type MemorySessionStore struct {
 	afterSet    func()
 	afterGet    func()
@@ -86,6 +95,7 @@ type MemorySessionStore struct {
 	ttl         time.Duration
 }
 
+// MemorySessionStoreConfig is used to configure an instance of the MemorySessionStore.
 type MemorySessionStoreConfig struct {
 	AfterSet    func()
 	AfterGet    func()
@@ -95,6 +105,7 @@ type MemorySessionStoreConfig struct {
 	TTL         time.Duration
 }
 
+// NewMemorySessionStore instantiates an instance of the MemorySessionStore.
 func NewMemorySessionStore(config MemorySessionStoreConfig) *MemorySessionStore {
 	if config.Interval <= 0 {
 		config.Interval = 10 * time.Minute
@@ -142,6 +153,7 @@ func NewMemorySessionStore(config MemorySessionStoreConfig) *MemorySessionStore 
 	return sessions
 }
 
+// Returns a request scoped session store.
 func (s *MemorySessionStore) WithContext(w http.ResponseWriter, r *http.Request) SessionStoreContext {
 	return &MemorySessionStoreContext{
 		res:      w,
@@ -150,6 +162,8 @@ func (s *MemorySessionStore) WithContext(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// Stops any resources utilised by the session store.
+// Note: this does not remove any data.
 func (s *MemorySessionStore) Stop() error {
 	s.cancel()
 	return nil

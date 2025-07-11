@@ -26,6 +26,7 @@ func TestSQLiteAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open database")
 	}
+	defer db.DB().Close()
 
 	config := sqliteauth.SQLiteAuthConfig{
 		Database: db.DB(),

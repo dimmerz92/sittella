@@ -1,11 +1,14 @@
 package sqlitedb
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/dimmerz92/sittella/database"
+	"github.com/dimmerz92/sittella/database/sqlitedb/migrations"
 	"github.com/google/uuid"
 	"github.com/mattn/go-sqlite3"
+	"github.com/pressly/goose/v3"
 )
 
 type SQLiteDB[Queries any] database.Database[Queries]
@@ -51,6 +54,10 @@ func NewSQLiteDatabase[DB any, Queries any](config Config, constructor func(DB) 
 
 	db, err := database.NewDatabase(config.DSN, "sittella_sqlite3", constructor)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := database.Migrate(context.Background(), goose.DialectSQLite3, db.DB(), migrations.Migrations); err != nil {
 		return nil, err
 	}
 

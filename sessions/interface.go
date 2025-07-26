@@ -1,9 +1,12 @@
 package sessions
 
 import (
+	"errors"
 	"net/http"
 	"time"
 )
+
+var ErrValueNotFound = errors.New("value not found")
 
 // Store specifies an interface to retrieve or generate request scoped sessions.
 type Store interface {
@@ -17,7 +20,7 @@ type Store interface {
 // Session specifies an interface for a request scoped session store.
 type Session interface {
 	// Set adds or updates the key value pair to the session.
-	Set(key string, value any)
+	Set(key string, value any) error
 
 	// Get retrieves and decodes the value mapped to by the given key if it exists.
 	Get(key string, dest any) error
@@ -27,6 +30,9 @@ type Session interface {
 
 	// Clear removes all key value pairs from the session.
 	Clear()
+
+	// Expiry returns the expiry datetime for the session.
+	Expiry() time.Time
 
 	// Extend updates the session expiry.
 	Extend(ttl time.Duration)

@@ -17,6 +17,9 @@ type App interface {
 	// Start runs the http server on the given port number.
 	Start(port int) error
 
+	// Stop sends a stop signal to the http server.
+	Stop() error
+
 	// Use applies the given middleware to all registered handlers.
 	Use(middleware ...MiddlewareFunc)
 

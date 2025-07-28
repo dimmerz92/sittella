@@ -60,6 +60,7 @@ func (a *app) OnStop(callback func()) {
 	a.onStop = callback
 }
 
+// Stop sends a stop signal to the http server.
 func (a *app) OnHandlerError(callback func(c core.Context, err error)) {
 	a.errorHandler = callback
 }
@@ -98,6 +99,8 @@ func (a *app) Start(port int) error {
 	fmt.Printf("listening on port %d", port)
 	return a.server.ListenAndServe()
 }
+
+func (a *app) Stop() error { return a.server.Close() }
 
 // Use applies the given middleware to all registered handlers.
 func (a *app) Use(middleware ...core.MiddlewareFunc)

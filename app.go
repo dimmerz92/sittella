@@ -103,7 +103,9 @@ func (a *app) Start(port int) error {
 func (a *app) Stop() error { return a.server.Close() }
 
 // Use applies the given middleware to all registered handlers.
-func (a *app) Use(middleware ...core.MiddlewareFunc)
+func (a *app) Use(middleware ...core.MiddlewareFunc) {
+	a.middleware = append(a.middleware, middleware...)
+}
 
 func (a *app) serve(method, path string, handler core.HandlerFunc, middleware ...core.MiddlewareFunc) {
 	for i := len(middleware) - 1; i >= 0; i-- {
